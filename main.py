@@ -3,15 +3,18 @@ import os
 import sys
 from PIL import Image
 
-
 pygame.init()
 pygame.display.init()
 size = width, height = 500, 500
 screen = pygame.display.set_mode(size)
 
 
-def load_image(name, colorkey=None):
+def load_image(name, colorkey=None, reflection=False):
     fullname = os.path.join('data', name)
+    if reflection:
+        image = Image.open(fullname)
+        image.transpose(Image.FLIP_LEFT_RIGHT)
+        image.save(fullname)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -43,7 +46,13 @@ class Player:
         self.image_head = load_image("head.png")
         self.lst_transform = []
         # Тут нужно перевернуть все картинки и положить их в массив
-        
+        self.lst_transform.append(load_image("legs.png", reflection=True))
+        self.lst_transform.append(load_image("legs-move-1.png", reflection=True))
+        self.lst_transform.append(load_image("legs.png", reflection=True))
+        self.lst_transform.append(load_image("legs-move-2.png", reflection=True))
+        self.lst_transform.append(load_image("body.png", reflection=True))
+        self.lst_transform.append(load_image("body-tool.png", reflection=True))
+        self.lst_transform.append(load_image("head.png", reflection=True))
 
         self.legs = MySprite(player_group, self.image_legs_move_0)
         self.move_count = 0
@@ -55,9 +64,12 @@ class Player:
         self.y = self.legs.rect.y = self.body.rect.y = self.head.rect.y
 
         self.delta_x = 0
-        self.lr = "right"
+        self.lr = -1
 
     def move(self, dx, dy):
+        if (self.lr > 0 and dx < 0) or (self.lr < 0 and dx > 0) or self.delta_x == 250 * 15:
+            self.lr *= -1
+            self.switch_lr()
         if dx != 0:
             self.delta_x += dx
         if self.delta_x % 15 == 0:
@@ -76,9 +88,15 @@ class Player:
             elif self.move_count == 3:
                 self.legs.image = self.image_legs_move_3
 
-    def switch_lr(self, lr):
-        if self.lr != lr:
-
+    def switch_lr(self):
+        print(1)
+        self.image_legs_move_0, self.image_legs_move_1, \
+        self.image_legs_move_2, self.image_legs_move_3, self.image_body, self.image_body_tool, self.image_head = \
+        self.lst_transform
+        self.lst_transform = self.image_legs_move_0, self.image_legs_move_1, self.image_legs_move_2, \
+        self.image_legs_move_3, self.image_body, self.image_body_tool, self.image_head
+        self.body.image = self.image_body
+        self.head.image = self.image_head
 
 
 if __name__ == "__main__":
