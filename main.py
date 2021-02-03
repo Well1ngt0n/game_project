@@ -38,21 +38,15 @@ class MySprite(pygame.sprite.Sprite):
 
 class Player:
     def __init__(self, x, y):
+        switch = False
         self.image_legs_move_2 = self.image_legs_move_0 = load_image("legs.png")
         self.image_legs_move_1 = load_image("legs-move-1.png")
         self.image_legs_move_3 = load_image("legs-move-2.png")
         self.image_body = load_image("body.png")
         self.image_body_tool = load_image("body-tool.png")
         self.image_head = load_image("head.png")
-        self.lst_transform = []
-        # Тут нужно перевернуть все картинки и положить их в массив
-        self.lst_transform.append(load_image("legs.png", reflection=True))
-        self.lst_transform.append(load_image("legs-move-1.png", reflection=True))
-        self.lst_transform.append(load_image("legs.png", reflection=True))
-        self.lst_transform.append(load_image("legs-move-2.png", reflection=True))
-        self.lst_transform.append(load_image("body.png", reflection=True))
-        self.lst_transform.append(load_image("body-tool.png", reflection=True))
-        self.lst_transform.append(load_image("head.png", reflection=True))
+
+        self.reverse = []
 
         self.legs = MySprite(player_group, self.image_legs_move_0)
         self.move_count = 0
@@ -64,20 +58,22 @@ class Player:
         self.y = self.legs.rect.y = self.body.rect.y = self.head.rect.y
 
         self.delta_x = 0
-        self.lr = -1
+        self.switch = False
 
-    def move(self, dx, dy):
-        if (self.lr > 0 and dx < 0) or (self.lr < 0 and dx > 0) or self.delta_x == 250 * 15:
-            self.lr *= -1
+        self.move_x = 0
+
+    def move(self):
+        dx = self.move_x
+        if (dx < 0 and not self.switch) or (dx > 0 and self.switch):
             self.switch_lr()
-        if dx != 0:
-            self.delta_x += dx
-        if self.delta_x % 15 == 0:
-            self.x += 1
-            self.body.rect.x += 1
-            self.legs.rect.x += 1
-            self.head.rect.x += 1
-        if self.delta_x % 150 == 0:
+
+        self.delta_x += dx
+        self.x += dx
+        self.body.rect.x += dx
+        self.legs.rect.x += dx
+        self.head.rect.x += dx
+
+        if self.delta_x % 10 == 0 and self.delta_x != 0:
             self.move_count = (self.move_count + 1) % 4
             if self.move_count == 0:
                 self.legs.image = self.image_legs_move_0
@@ -87,16 +83,37 @@ class Player:
                 self.legs.image = self.image_legs_move_2
             elif self.move_count == 3:
                 self.legs.image = self.image_legs_move_3
+            self.delta_x = 0
 
     def switch_lr(self):
-        print(1)
-        self.image_legs_move_0, self.image_legs_move_1, \
-        self.image_legs_move_2, self.image_legs_move_3, self.image_body, self.image_body_tool, self.image_head = \
-        self.lst_transform
-        self.lst_transform = self.image_legs_move_0, self.image_legs_move_1, self.image_legs_move_2, \
-        self.image_legs_move_3, self.image_body, self.image_body_tool, self.image_head
-        self.body.image = self.image_body
-        self.head.image = self.image_head
+        self.switch = not self.switch
+        self.image_legs_move_0 = pygame.transform.flip(self.image_legs_move_0, True, False)
+        self.image_legs_move_1 = pygame.transform.flip(self.image_legs_move_1, True, False)
+        self.image_legs_move_2 = pygame.transform.flip(self.image_legs_move_2, True, False)
+        self.image_legs_move_3 = pygame.transform.flip(self.image_legs_move_3, True, False)
+        self.body.image = pygame.transform.flip(self.body.image, True, False)
+        self.image_body = pygame.transform.flip(self.image_body, True, False)
+        self.image_body_tool = pygame.transform.flip(self.image_body_tool, True, False)
+        self.head.image = pygame.transform.flip(self.head.image, True, False)
+
+    def events(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_d:
+                self.move_x = 2
+            if event.key == pygame.K_a:
+                self.move_x = -2
+            if event.key == pygame.K_SPACE:
+                pass
+                # реализовать прыжок
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_d:
+                self.move_x = 0
+            if event.key == pygame.K_a:
+                self.move_x = 0
+            if event.key == pygame.K_SPACE:
+                pass
+                # реализовать прыжок
+        self.move()
 
 
 if __name__ == "__main__":
@@ -108,8 +125,8 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        screen.fill(pygame.Color(0, 0, 0))
-        player.move(1, 0)
+            player.events(event)
+        screen.fill(pygame.Color(255, 255, 255))
         player_group.update()
         player_group.draw(screen)
         clock.tick()
