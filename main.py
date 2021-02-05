@@ -40,7 +40,10 @@ class Button:
         self.text_w = text.get_width()
         self.text_h = text.get_height()
         screen.blit(text, (self.text_x, self.text_y))
-        pygame.draw.rect(screen, (255, 255, 255), (self.text_x - 10, self.text_y - 10, self.text_w + 20, self.text_h + 20), 1)
+        pygame.draw.rect(screen, (255, 255, 255),
+                         (self.text_x - 10, self.text_y - 10, self.text_w + 20, self.text_h + 20), 1)
+        self.w = self.text_w + 20
+        self.h = self.text_h + 20
 
 
 class MySprite(pygame.sprite.Sprite):
@@ -109,21 +112,22 @@ class Player:
         self.image_body = pygame.transform.flip(self.image_body, True, False)
         self.image_body_tool = pygame.transform.flip(self.image_body_tool, True, False)
         self.head.image = pygame.transform.flip(self.head.image, True, False)
+        self.legs.image = pygame.transform.flip(self.legs.image, True, False)
 
     def events(self, event):
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_d:
-                self.move_x = 2
-            if event.key == pygame.K_a:
-                self.move_x = -2
-            if event.key == pygame.K_SPACE:
-                pass
-                # реализовать прыжок
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_d:
                 self.move_x = 0
             if event.key == pygame.K_a:
                 self.move_x = 0
+            if event.key == pygame.K_SPACE:
+                pass
+                # реализовать прыжок
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_d:
+                self.move_x = 2
+            if event.key == pygame.K_a:
+                self.move_x = -2
             if event.key == pygame.K_SPACE:
                 pass
                 # реализовать прыжок
@@ -142,14 +146,22 @@ def start_screen():
 
     button_play = Button(height // 2 - 100, "Играть", 60)
     button_save = Button(height // 2 + 100, "Загрузить сохранение", 60)
-
+    upload_save = False
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if button_play.text_x - 10 <= x <= button_play.text_x - 10 + button_play.w and \
+                        button_play.text_y - 10 <= y <= button_play.text_y - 10 + button_play.h:
+                    return
+                if button_save.text_x - 10 <= x <= button_save.text_x - 10 + button_save.w and \
+                        button_save.text_y - 10 <= y <= button_save.text_y - 10 + button_save.h:
+                    upload_save = True
+        if upload_save:
+            pass
+            # Загрузка сохранений
         pygame.display.flip()
 
 
