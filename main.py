@@ -7,6 +7,7 @@ pygame.init()
 pygame.display.init()
 size = width, height = 500, 500
 screen = pygame.display.set_mode(size)
+clock = pygame.time.Clock()
 
 
 def load_image(name, colorkey=None, reflection=False):
@@ -27,6 +28,19 @@ def load_image(name, colorkey=None, reflection=False):
     else:
         image = image.convert_alpha()
     return image
+
+
+class Button:
+    def __init__(self, y, text, font_size):
+        self.text = text
+        self.font = pygame.font.Font(None, font_size)
+        text = self.font.render(text, True, (255, 255, 255))
+        self.text_x = width // 2 - text.get_width() // 2
+        self.text_y = y
+        self.text_w = text.get_width()
+        self.text_h = text.get_height()
+        screen.blit(text, (self.text_x, self.text_y))
+        pygame.draw.rect(screen, (255, 255, 255), (self.text_x - 10, self.text_y - 10, self.text_w + 20, self.text_h + 20), 1)
 
 
 class MySprite(pygame.sprite.Sprite):
@@ -116,9 +130,33 @@ class Player:
         self.move()
 
 
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def start_screen():
+    # fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
+    # screen.blit(fon, (0, 0))
+    screen.fill((0, 0, 0))
+
+    button_play = Button(height // 2 - 100, "Играть", 60)
+    button_save = Button(height // 2 + 100, "Загрузить сохранение", 60)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+
+
 if __name__ == "__main__":
+    start_screen()
+
     player_group = pygame.sprite.Group()
-    clock = pygame.time.Clock()
     player = Player(30, 30)
     running = True
     while running:
