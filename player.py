@@ -16,11 +16,14 @@ class Player:
         self.image_body = load_image("body.png")
         self.image_body_tool = load_image("body-tool.png")
         self.image_head = load_image("head.png")
-        self.image_sword = load_image("sword.png")
+        self.image_sword = load_image("sword-test.png")
         self.image_jump = load_image("legs-jump.png")
+        self.track1 = load_image("sword-track-1.png")
+        self.track2 = load_image("sword-track-2.png")
+        self.image_none = load_image("none.png")
 
         self.reverse = []
-
+        self.track = MySprite(self.sprites, self.image_none)
         self.legs = MySprite(self.sprites, self.image_legs_move_0)
         self.move_count = 0
         self.cur_tool = "sword"
@@ -40,6 +43,8 @@ class Player:
 
         self.move_x = 0
         self.move_y = -10
+
+        self.attack = 0
 
     def move(self):
         if self.cur_tool is None:
@@ -92,12 +97,48 @@ class Player:
             # self.jump = False
             #
 
+        if self.attack != 0:
+            if self.attack == 5:
+                if self.switch:
+                    self.track.image = self.track1
+                    self.track.rect.x = self.x - 45
+                    self.track.rect.y = self.y + 26
+                    self.tool.image = pygame.transform.rotate(self.tool.image, 45)
+                else:
+                    self.track.image = self.track1
+                    self.track.rect.x = self.x + 50
+                    self.track.rect.y = self.y
+                    self.tool.image = pygame.transform.rotate(self.tool.image, -45)
+                self.tool.rect.y += 15
+            if self.attack == 10:
+                if self.switch:
+                    self.track.image = self.track2
+                    self.track.rect.x = self.x - 45
+                    self.track.rect.y = self.y + 26
+                    self.tool.image = pygame.transform.rotate(self.image_sword, 90)
+                else:
+                    self.track.image = self.track2
+                    self.track.rect.x = self.x + 45
+                    self.track.rect.y = self.y + 26
+                    self.tool.image = pygame.transform.rotate(self.image_sword, -90)
+                self.tool.rect.y += 35
+            if self.attack == 15:
+                self.track.image = self.image_none
+                self.tool.rect.y -= 50
+                self.tool.image = self.image_sword
+                self.attack = -1
+            self.attack += 1
+
     def switch_lr(self):
         self.switch = not self.switch
         self.image_legs_move_0 = pygame.transform.flip(self.image_legs_move_0, True, False)
         self.image_legs_move_1 = pygame.transform.flip(self.image_legs_move_1, True, False)
         self.image_legs_move_2 = pygame.transform.flip(self.image_legs_move_2, True, False)
         self.image_legs_move_3 = pygame.transform.flip(self.image_legs_move_3, True, False)
+        self.track1 = pygame.transform.flip(self.track1, True, False)
+        self.track2 = pygame.transform.flip(self.track2, True, False)
+        self.track.image = pygame.transform.flip(self.track.image, True, False)
+        self.image_sword = pygame.transform.flip(self.image_sword, True, False)
         self.image_jump = pygame.transform.flip(self.image_jump, True, False)
         self.body.image = pygame.transform.flip(self.body.image, True, False)
         self.image_body = pygame.transform.flip(self.image_body, True, False)
@@ -106,7 +147,7 @@ class Player:
         self.legs.image = pygame.transform.flip(self.legs.image, True, False)
         if self.cur_tool is not None:
             self.tool.image = pygame.transform.flip(self.tool.image, True, False)
-            self.tool.rect.x += 150 * self.move_x // abs(self.move_x)
+            self.tool.rect.x += 76 * self.move_x // abs(self.move_x)
 
     def events(self, event):
         if event.type == pygame.KEYUP:
@@ -125,4 +166,6 @@ class Player:
             if event.key == pygame.K_SPACE and not self.jump:
                 self.jump = True
                 self.move_y = 10
-                # реализовать прыжок
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.cur_tool == "sword" and self.attack == 0:
+                self.attack = 1
