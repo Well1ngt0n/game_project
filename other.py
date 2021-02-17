@@ -27,5 +27,6 @@ def load_image(name, colorkey=None, reflection=False):
 class MySprite(pygame.sprite.Sprite):
     def __init__(self, group, all, image):
         super().__init__(all)
+        self.add(group)
         self.image = image
         self.rect = self.image.get_rect()

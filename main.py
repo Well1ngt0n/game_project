@@ -15,7 +15,7 @@ monsters = pygame.sprite.Group()
 player_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
-# Тестовая земля, потому что денис ленивая тварь
+# Тестовая земля, потому что Денис ленивая тварь
 land = pygame.sprite.Group()
 for i in range(width):
     l = MySprite(land, all_sprites, load_image("1-pix-land.png"))
@@ -43,7 +43,6 @@ class Player:
         self.track2 = load_image("sword-track-2.png")
         self.image_none = load_image("none.png")
 
-        self.reverse = []
         self.track = MySprite(player_sprites, all_sprites, self.image_none)
         self.legs = MySprite(player_sprites, all_sprites, self.image_legs_move_0)
         self.move_count = 0
@@ -63,14 +62,13 @@ class Player:
         self.jump = False
 
         self.move_x = 0
-        self.move_y = -10
+        self.move_y = -20
 
         self.attack = 0
 
     def move(self):
         # print(self.legs.rect.y)
-        if pygame.sprite.spritecollideany(self.legs, land):
-            print(1)
+        if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
             self.move_y = -10
         elif self.jump is False:
@@ -101,7 +99,7 @@ class Player:
         if self.cur_tool is not None:
             self.tool.rect.x += dx
 
-        if self.delta_x % 10 == 0 and self.delta_x != 0:
+        if self.delta_x % 10 == 0 and self.delta_x != 0 and not self.jump:
             self.move_count = (self.move_count + 1) % 4
             if self.move_count == 0:
                 self.legs.image = self.image_legs_move_0
@@ -114,12 +112,16 @@ class Player:
             self.delta_x = 0
 
         if self.jump:
-            self.move_y = max(self.move_y - 1, -10)
-            self.y -= self.move_y
-            self.legs.rect.y -= self.move_y
-            self.body.rect.y -= self.move_y
-            self.head.rect.y -= self.move_y
-            self.tool.rect.y -= self.move_y
+            self.move_y = max(self.move_y - 1, -20)
+            for dy in range(abs(self.move_y)):
+                if self.jump:
+                    if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
+                        self.jump = False
+                    self.y -= self.move_y // abs(self.move_y) * 1
+                    self.legs.rect.y -= self.move_y // abs(self.move_y) * 1
+                    self.body.rect.y -= self.move_y // abs(self.move_y) * 1
+                    self.head.rect.y -= self.move_y // abs(self.move_y) * 1
+                    self.tool.rect.y -= self.move_y // abs(self.move_y) * 1
 
         if self.attack != 0:
             if self.attack == 5:
@@ -187,7 +189,7 @@ class Player:
                 self.move_x = -5
             if event.key == pygame.K_SPACE and not self.jump:
                 self.jump = True
-                self.move_y = 10
+                self.move_y = 15
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.cur_tool == "sword" and self.attack == 0:
                 self.attack = 1
@@ -209,7 +211,7 @@ class Slime:
         self.jump_fall = False
 
     def update(self, player):
-        if pygame.sprite.spritecollideany(self.sprite, land):
+        if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
             self.jump_fall = False
             self.move_y = -10
         elif self.jump_fall is False:
@@ -228,15 +230,19 @@ class Slime:
                 self.sprite.image = pygame.transform.flip(self.sprite.image, True, False)
 
         if self.jump_fall:
-            self.sprite.rect.y += self.move_y
-            self.y += self.move_y
             self.sprite.rect.x += self.move_x
             self.x += self.move_x
-            if self.move_y != -10:
-                self.move_y -= 1
+            self.move_y = max(self.move_y - 1, -20)
+            for dy in range(abs(self.move_y)):
+                if self.jump_fall:
+                    if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
+                        self.jump_fall = False
+                    self.y -= self.move_y // abs(self.move_y) * 1
+                    self.sprite.rect.y -= self.move_y // abs(self.move_y) * 1
+
         else:
             self.jump_fall = True
-            self.move_y = 10
+            self.move_y = 20
 
 
 def start_screen():
@@ -270,6 +276,7 @@ if __name__ == "__main__":
 
     player_group = pygame.sprite.Group()
     player = Player(150, 150)
+    slime = Slime(1500, 150)
     running = True
     while running:
         for event in pygame.event.get():
@@ -278,6 +285,7 @@ if __name__ == "__main__":
             player.events(event)
 
         player.move()
+        slime.update(player)
         screen.fill(pygame.Color(255, 255, 255))
         all_sprites.update()
         all_sprites.draw(screen)
