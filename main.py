@@ -8,7 +8,8 @@ from other import *
 
 pygame.init()
 pygame.display.init()
-size = width, height = 2560, 1440
+infoObject = pygame.display.Info()
+size = width, height = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 monsters = pygame.sprite.Group()
@@ -43,11 +44,14 @@ class Player:
         self.track2 = load_image("sword-track-2.png")
         self.image_none = load_image("none.png")
 
-        self.track = MySprite(player_sprites, all_sprites, self.image_none)
+        self.track = MySprite(all_sprites, all_sprites, self.image_none)
         self.legs = MySprite(player_sprites, all_sprites, self.image_legs_move_0)
         self.move_count = 0
         self.cur_tool = "sword"
-        self.tool = MySprite(player_sprites, all_sprites, self.image_sword)
+        self.damage = {
+            "sword": 50,
+        }
+        self.tool = MySprite(all_sprites, all_sprites, self.image_sword)
         self.body = MySprite(player_sprites, all_sprites, self.image_body)
 
         self.head = MySprite(player_sprites, all_sprites, self.image_head)
@@ -63,8 +67,13 @@ class Player:
 
         self.move_x = 0
         self.move_y = -20
-
+        # Статы персонажа
         self.attack = 0
+        self.health = 100
+        self.max_health = 100
+        # Константые размеры
+        self.width = 52
+        self.height = 0  # Не помню xD
 
     def move(self):
         # print(self.legs.rect.y)
@@ -155,6 +164,10 @@ class Player:
                 self.attack = -1
             self.attack += 1
 
+        pygame.draw.rect(screen, pygame.Color("red"), (20, 20, 100, 20))
+        pygame.draw.rect(screen, pygame.Color("green"), (20, 20, 100 * (self.health / self.max_health), 20))
+
+
     def switch_lr(self):
         self.switch = not self.switch
         self.image_legs_move_0 = pygame.transform.flip(self.image_legs_move_0, True, False)
@@ -200,17 +213,35 @@ class Slime:
         self.slime_image = load_image("slime.png")
         self.sprite = MySprite(monsters, all_sprites, self.slime_image)
 
+        self.max_health = 150
+        self.health = 150
+
         self.sprite.rect.x = x
         self.sprite.rect.y = y
         self.x = x
         self.y = y
-
-        self.switch = False
+        # Движение
         self.move_y = -10
         self.move_x = 0
+        self.sleep = 0
+        # Флаги
+        self.switch = False
         self.jump_fall = False
+        self.retreat = False
+        # Размеры картинки, константа
+        self.width = 68
+        self.height = 40
+        # Получив урон, должен быть щит
+        self.shield = 0
+        self.damage = 20
+        # Чтобы игрок не получал 100500 урона за удар
+        self.time_not_attack = 0
+        # Жив ли еще?
+        self.dead = False
 
-    def update(self, player):
+    def update(self):
+        if self.dead:  # Если мертв, так и обновлять нечего
+            return
         if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
             self.jump_fall = False
             self.move_y = -10
@@ -218,7 +249,29 @@ class Slime:
             self.jump_fall = True
             self.move_y = -1
 
-        if player.x > self.x:
+        if (pygame.sprite.collide_circle(self.sprite, player.tool)
+            or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
+            self.health -= player.damage[player.cur_tool]
+            self.retreat = True
+            self.move_y = 0
+            if player.switch:
+                self.move_x = -5
+            else:
+                self.move_x = 5
+            self.shield = 10
+        elif self.shield != 0:
+            self.shield -= 1
+
+        if self.retreat:
+            pass
+        elif pygame.sprite.spritecollideany(self.sprite, player_sprites) and self.time_not_attack == 0:  # Ударил игрока
+            self.retreat = True
+            self.move_x = 5 * self.move_x / abs(self.move_x)
+            player.health -= self.damage
+            self.time_not_attack = 20
+        elif self.time_not_attack != 0:
+            self.time_not_attack -= 1
+        elif player.x >= self.x:
             self.move_x = 3
             if self.switch is True:
                 self.switch = False
@@ -236,13 +289,27 @@ class Slime:
             for dy in range(abs(self.move_y)):
                 if self.jump_fall:
                     if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
+                        self.retreat = False
                         self.jump_fall = False
+                        self.sleep = 20
                     self.y -= self.move_y // abs(self.move_y) * 1
                     self.sprite.rect.y -= self.move_y // abs(self.move_y) * 1
 
         else:
-            self.jump_fall = True
-            self.move_y = 20
+            if self.sleep == 0:
+                self.jump_fall = True
+                self.move_y = 20
+            else:
+                self.sleep -= 1
+
+        # Отрисовка здоровья
+        pygame.draw.rect(screen, pygame.Color("red"), (self.x, self.y - 20, self.width, 5))
+        pygame.draw.rect(screen, pygame.Color("green"),
+                         (self.x, self.y - 20, self.width * (self.health / self.max_health), 5))
+
+        if self.health == 0:
+            self.sprite.kill()
+            self.dead = True
 
 
 def start_screen():
@@ -284,9 +351,9 @@ if __name__ == "__main__":
                 running = False
             player.events(event)
 
-        player.move()
-        slime.update(player)
         screen.fill(pygame.Color(255, 255, 255))
+        player.move()
+        slime.update()
         all_sprites.update()
         all_sprites.draw(screen)
         clock.tick(60)
