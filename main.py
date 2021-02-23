@@ -5,6 +5,7 @@ from PIL import Image
 # from player import Player
 from interface import Button
 from other import *
+import level
 
 pygame.init()
 pygame.display.init()
@@ -17,11 +18,30 @@ player_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 
 # Тестовая земля, потому что Денис ленивая тварь
+# 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
 land = pygame.sprite.Group()
-for i in range(width):
-    l = MySprite(land, all_sprites, load_image("1-pix-land.png"))
-    l.rect.x = i
-    l.rect.y = height * 2 // 3
+_x = 0
+_y = level.level1_startpos(height)
+_flag = False
+
+for i in range(len(level.level1)):
+    l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
+    if _flag:
+        l.image = load_image("dirt.png")
+    l.rect.x = _x
+    l.rect.y = _y
+
+    _flag = False
+    if level.level1[i] == 'R':
+        _x += 16
+    elif level.level1[i] == 'U':
+        _y -= 16
+        l.image = load_image("dirt.png")
+    elif level.level1[i] == 'D':
+        _y += 16
+        _flag = True
+    elif level.level1[i] == 'L':
+        _x -= 16
 
 
 def terminate():
@@ -32,7 +52,8 @@ def terminate():
 class Player:
     def __init__(self, x, y):
 
-        self.image_legs_move_2 = self.image_legs_move_0 = load_image("legs.png")
+        self.image_legs_move_2 = self.image_legs_move_0 = load_image(
+            "legs.png")
         self.image_legs_move_1 = load_image("legs-move-1.png")
         self.image_legs_move_3 = load_image("legs-move-2.png")
         self.image_body = load_image("body.png")
@@ -45,7 +66,8 @@ class Player:
         self.image_none = load_image("none.png")
 
         self.track = MySprite(all_sprites, all_sprites, self.image_none)
-        self.legs = MySprite(player_sprites, all_sprites, self.image_legs_move_0)
+        self.legs = MySprite(player_sprites, all_sprites,
+                             self.image_legs_move_0)
         self.move_count = 0
         self.cur_tool = "sword"
         self.damage = {
@@ -77,6 +99,14 @@ class Player:
 
     def move(self):
         # print(self.legs.rect.y)
+        # todo: сделать, чтобы он не прыгал на 100500 блоков сам (Поярков обрежь текстуры)
+        if len(pygame.sprite.spritecollide(self.legs, land, False)) >= 6:
+            self.y -= 16
+            self.body.rect.y -= 16
+            self.legs.rect.y -= 16
+            self.head.rect.y -= 16
+            self.tool.rect.y -= 16
+
         if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
             self.move_y = -10
@@ -138,24 +168,28 @@ class Player:
                     self.track.image = self.track1
                     self.track.rect.x = self.x - 45
                     self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(self.tool.image, 45)
+                    self.tool.image = pygame.transform.rotate(
+                        self.tool.image, 45)
                 else:
                     self.track.image = self.track1
                     self.track.rect.x = self.x + 50
                     self.track.rect.y = self.y
-                    self.tool.image = pygame.transform.rotate(self.tool.image, -45)
+                    self.tool.image = pygame.transform.rotate(
+                        self.tool.image, -45)
                 self.tool.rect.y += 15
             if self.attack == 10:
                 if self.switch:
                     self.track.image = self.track2
                     self.track.rect.x = self.x - 45
                     self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(self.image_sword, 90)
+                    self.tool.image = pygame.transform.rotate(
+                        self.image_sword, 90)
                 else:
                     self.track.image = self.track2
                     self.track.rect.x = self.x + 45
                     self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(self.image_sword, -90)
+                    self.tool.image = pygame.transform.rotate(
+                        self.image_sword, -90)
                 self.tool.rect.y += 35
             if self.attack == 15:
                 self.track.image = self.image_none
@@ -165,15 +199,19 @@ class Player:
             self.attack += 1
 
         pygame.draw.rect(screen, pygame.Color("red"), (20, 20, 100, 20))
-        pygame.draw.rect(screen, pygame.Color("green"), (20, 20, 100 * (self.health / self.max_health), 20))
-
+        pygame.draw.rect(screen, pygame.Color("green"),
+                         (20, 20, 100 * (self.health / self.max_health), 20))
 
     def switch_lr(self):
         self.switch = not self.switch
-        self.image_legs_move_0 = pygame.transform.flip(self.image_legs_move_0, True, False)
-        self.image_legs_move_1 = pygame.transform.flip(self.image_legs_move_1, True, False)
-        self.image_legs_move_2 = pygame.transform.flip(self.image_legs_move_2, True, False)
-        self.image_legs_move_3 = pygame.transform.flip(self.image_legs_move_3, True, False)
+        self.image_legs_move_0 = pygame.transform.flip(
+            self.image_legs_move_0, True, False)
+        self.image_legs_move_1 = pygame.transform.flip(
+            self.image_legs_move_1, True, False)
+        self.image_legs_move_2 = pygame.transform.flip(
+            self.image_legs_move_2, True, False)
+        self.image_legs_move_3 = pygame.transform.flip(
+            self.image_legs_move_3, True, False)
         self.track1 = pygame.transform.flip(self.track1, True, False)
         self.track2 = pygame.transform.flip(self.track2, True, False)
         self.track.image = pygame.transform.flip(self.track.image, True, False)
@@ -181,11 +219,13 @@ class Player:
         self.image_jump = pygame.transform.flip(self.image_jump, True, False)
         self.body.image = pygame.transform.flip(self.body.image, True, False)
         self.image_body = pygame.transform.flip(self.image_body, True, False)
-        self.image_body_tool = pygame.transform.flip(self.image_body_tool, True, False)
+        self.image_body_tool = pygame.transform.flip(
+            self.image_body_tool, True, False)
         self.head.image = pygame.transform.flip(self.head.image, True, False)
         self.legs.image = pygame.transform.flip(self.legs.image, True, False)
         if self.cur_tool is not None:
-            self.tool.image = pygame.transform.flip(self.tool.image, True, False)
+            self.tool.image = pygame.transform.flip(
+                self.tool.image, True, False)
             self.tool.rect.x += 76 * self.move_x // abs(self.move_x)
 
     def events(self, event):
@@ -250,7 +290,7 @@ class Slime:
             self.move_y = -1
 
         if (pygame.sprite.collide_circle(self.sprite, player.tool)
-            or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
+                or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
             self.health -= player.damage[player.cur_tool]
             self.retreat = True
             self.move_y = 0
@@ -264,7 +304,8 @@ class Slime:
 
         if self.retreat:
             pass
-        elif pygame.sprite.spritecollideany(self.sprite, player_sprites) and self.time_not_attack == 0:  # Ударил игрока
+        # Ударил игрока
+        elif pygame.sprite.spritecollideany(self.sprite, player_sprites) and self.time_not_attack == 0:
             self.retreat = True
             self.move_x = 5 * self.move_x / abs(self.move_x)
             player.health -= self.damage
@@ -275,12 +316,14 @@ class Slime:
             self.move_x = 3
             if self.switch is True:
                 self.switch = False
-                self.sprite.image = pygame.transform.flip(self.sprite.image, True, False)
+                self.sprite.image = pygame.transform.flip(
+                    self.sprite.image, True, False)
         else:
             self.move_x = -3
             if self.switch is False:
                 self.switch = True
-                self.sprite.image = pygame.transform.flip(self.sprite.image, True, False)
+                self.sprite.image = pygame.transform.flip(
+                    self.sprite.image, True, False)
 
         if self.jump_fall:
             self.sprite.rect.x += self.move_x
@@ -303,7 +346,8 @@ class Slime:
                 self.sleep -= 1
 
         # Отрисовка здоровья
-        pygame.draw.rect(screen, pygame.Color("red"), (self.x, self.y - 20, self.width, 5))
+        pygame.draw.rect(screen, pygame.Color("red"),
+                         (self.x, self.y - 20, self.width, 5))
         pygame.draw.rect(screen, pygame.Color("green"),
                          (self.x, self.y - 20, self.width * (self.health / self.max_health), 5))
 
@@ -318,7 +362,8 @@ def start_screen():
     screen.fill((0, 0, 0))
 
     button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
-    button_save = Button(height // 2 + 100, "Загрузить сохранение", 60, screen, width)
+    button_save = Button(
+        height // 2 + 100, "Загрузить сохранение", 60, screen, width)
     upload_save = False
     while True:
         for event in pygame.event.get():
