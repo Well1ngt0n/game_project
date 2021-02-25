@@ -14,8 +14,27 @@ size = width, height = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 monsters = pygame.sprite.Group()
+monsters_objects = []
 player_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
+
+
+class Camera:
+    # зададим начальный сдвиг камеры
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    # сдвинуть объект obj на смещение камеры
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    # позиционировать камеру на объекте target
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+
 
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
@@ -93,6 +112,8 @@ class Player:
         self.attack = 0
         self.health = 100
         self.max_health = 100
+        # А может мы уже умерли?
+        self.dead = False  # АХАХАХ ДЕД
         # Константые размеры
         self.width = 52
         self.height = 0  # Не помню xD
@@ -100,8 +121,14 @@ class Player:
     def move(self):
         # print(self.legs.rect.y)
         # todo: сделать, чтобы он не прыгал на 100500 блоков сам (Поярков обрежь текстуры)
+        # Костыль для камеры
+        self.x = self.legs.rect.x
+        self.y = self.legs.rect.y
         autojump = False
         _movex = self.move_x
+
+        if self.health <= 0:
+            self.dead = True
 
         if len(pygame.sprite.spritecollide(self.legs, land, False)) >= 6:
             self.move_x = 0
@@ -305,6 +332,9 @@ class Slime:
         self.dead = False
 
     def update(self):
+        # УРААА КОСТЫЛЬ!!
+        self.x = self.sprite.rect.x
+        self.y = self.sprite.rect.y
         if self.dead:  # Если мертв, так и обновлять нечего
             return
         if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
@@ -315,7 +345,7 @@ class Slime:
             self.move_y = -1
 
         if (pygame.sprite.collide_circle(self.sprite, player.tool)
-                or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
+            or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
             self.health -= player.damage[player.cur_tool]
             self.retreat = True
             self.move_y = 0
@@ -388,8 +418,8 @@ def start_screen():
 
     button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
     button_save = Button(
-        height // 2 + 100, "Загрузить сохранение", 60, screen, width)
-    upload_save = False
+        height // 2 + 100, "Уровни", 60, screen, width)
+    upload_level = False
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -401,31 +431,71 @@ def start_screen():
                     return
                 if button_save.text_x - 10 <= x <= button_save.text_x - 10 + button_save.w and \
                         button_save.text_y - 10 <= y <= button_save.text_y - 10 + button_save.h:
-                    upload_save = True
-        if upload_save:
-            pass
-            # Загрузка сохранений
+                    upload_level = True
+        if upload_level:
+            levels_screen()
+            upload_level = False
+
+            screen.fill((0, 0, 0))
+
+            button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
+            button_save = Button(
+                height // 2 + 100, "Уровни", 60, screen, width)
+        pygame.display.flip()
+
+
+def levels_screen():
+    screen.fill((0, 0, 0))
+    levels = []
+    for i in range(4):
+        levels.append(Button(height // 5 + i * 100, f"Уровень {i + 1}", 60, screen, width))
+    exit_btn = Button(height // 5 + 400, f"Назад", 60, screen, width)
+    run = True
+    while run:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if exit_btn.text_x - 10 <= x <= exit_btn.text_x - 10 + exit_btn.w and \
+                        exit_btn.text_y - 10 <= y <= exit_btn.text_y - 10 + exit_btn.h:
+                    print(1)
+                    return
         pygame.display.flip()
 
 
 if __name__ == "__main__":
-    start_screen()
+    play = True
+    while play:
+        start_screen()
+        camera = Camera()
+        player_group = pygame.sprite.Group()
+        player = Player(150, 150)
+        monsters_objects.append(Slime(1500, 150))
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                player.events(event)
+            # изменяем ракурс камеры
+            camera.update(player.legs)
+            # обновляем положение всех спрайтов
+            for sprite in all_sprites:
+                camera.apply(sprite)
 
-    player_group = pygame.sprite.Group()
-    player = Player(150, 150)
-    slime = Slime(1500, 150)
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if player.dead is True:
                 running = False
-            player.events(event)
-
-        screen.fill(pygame.Color(255, 255, 255))
-        player.move()
-        slime.update()
-        all_sprites.update()
-        all_sprites.draw(screen)
-        clock.tick(60)
-        pygame.display.flip()
+            screen.fill(pygame.Color(255, 255, 255))
+            player.move()
+            for monster in monsters_objects:
+                monster.update()
+            all_sprites.update()
+            all_sprites.draw(screen)
+            clock.tick(60)
+            pygame.display.flip()
+        all_sprites = pygame.sprite.Group()
+        monsters = pygame.sprite.Group()
+        player_sprites = pygame.sprite.Group()
+        monsters_objects = []
     pygame.quit()
