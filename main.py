@@ -20,6 +20,7 @@ all_sprites = pygame.sprite.Group()
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
 land = pygame.sprite.Group()
+land_unused = pygame.sprite.Group()
 _x = 0
 _y = level.levels[0][0](height)
 _flag = False
@@ -96,41 +97,46 @@ class Player:
         # Константые размеры
         self.width = 52
         self.height = 0  # Не помню xD
+        # смотрю, нажата ли кнопка
+        self.key_a = False
+        self.key_d = False
+        self.key_space = False
 
     def move(self):
-        # print(self.legs.rect.y)
-        # todo: сделать, чтобы он не прыгал на 100500 блоков сам (Поярков обрежь текстуры)
-        autojump = False
-        _movex = self.move_x
-
         if len(pygame.sprite.spritecollide(self.legs, land, False)) >= 6:
-            self.move_x = 0
             self.legs.rect.y -= 40
-
-            if not pygame.sprite.spritecollideany(self.legs, land):
-                autojump = True
-
+            _flag = pygame.sprite.spritecollideany(self.legs, land)
             self.legs.rect.y += 40
 
-            if autojump:
-                auojump = False
+            if not _flag:
                 self.jump = True
                 self.move_y = 10
-                self.move_x = _movex
             else:
-                if self.switch:
-                    self.x += 1
-                    self.body.rect.x += 1
-                    self.head.rect.x += 1
-                    self.tool.rect.x += 1
-                    self.legs.rect.x += 1
+                self.legs.rect.x += 5
+                rcount = len(pygame.sprite.spritecollide(
+                    self.legs, land, False))
+                self.legs.rect.x -= 10
+                lcount = len(pygame.sprite.spritecollide(
+                    self.legs, land, False))
+                self.legs.rect.x += 5
 
-                else:
-                    self.x -= 1
-                    self.body.rect.x -= 1
-                    self.head.rect.x -= 1
-                    self.tool.rect.x -= 1
-                    self.legs.rect.x -= 1
+                if rcount > lcount and self.move_x > 0 or rcount < lcount and self.move_x < 0:
+                    self.move_x = 0
+
+                # self.move_x = 0
+                # if self.switch:
+                #     self.x += 1
+                #     self.body.rect.x += 1
+                #     self.head.rect.x += 1
+                #     self.tool.rect.x += 1
+                #     self.legs.rect.x += 1
+
+                # else:
+                #     self.x -= 1
+                #     self.body.rect.x -= 1
+                #     self.head.rect.x -= 1
+                #     self.tool.rect.x -= 1
+                #     self.legs.rect.x -= 1
 
         if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
@@ -256,21 +262,40 @@ class Player:
     def events(self, event):
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_d and self.move_x > 0:
-                self.move_x = 0
+                if self.key_d == False:
+                    self.key_a = False
+                self.key_d = False
             if event.key == pygame.K_a and self.move_x < 0:
-                self.move_x = 0
+                if self.key_a == False:
+                    self.key_d = False
+                self.key_a = False
+            if event.key == pygame.K_SPACE:
+                self.key_space = False
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_d:
-                self.move_x = 5
+                self.key_d = True
+                self.key_a = False
             if event.key == pygame.K_a:
-                self.move_x = -5
+                self.key_a = True
+                self.key_d = False
             if event.key == pygame.K_SPACE and not self.jump:
-                self.jump = True
-                self.move_y = 15
+                self.key_space = True
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.cur_tool == "sword" and self.attack == 0:
                 self.attack = 1
+
+        if self.key_a:
+            self.move_x = -5
+        elif self.key_d:
+            self.move_x = 5
+        else:
+            self.move_x = 0
+
+        if self.key_space and not self.jump:
+            self.jump = True
+            self.move_y = 15
 
 
 class Slime:
