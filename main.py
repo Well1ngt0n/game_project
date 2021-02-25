@@ -21,10 +21,10 @@ all_sprites = pygame.sprite.Group()
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
 land = pygame.sprite.Group()
 _x = 0
-_y = level.level1_startpos(height)
+_y = level.levels[0][0](height)
 _flag = False
 
-for i in range(len(level.level1)):
+for i in level.levels[0][1]:
     l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
     if _flag:
         l.image = load_image("dirt.png")
@@ -32,15 +32,15 @@ for i in range(len(level.level1)):
     l.rect.y = _y
 
     _flag = False
-    if level.level1[i] == 'R':
+    if i == 'R':
         _x += 16
-    elif level.level1[i] == 'U':
+    elif i == 'U':
         _y -= 16
         l.image = load_image("dirt.png")
-    elif level.level1[i] == 'D':
+    elif i == 'D':
         _y += 16
         _flag = True
-    elif level.level1[i] == 'L':
+    elif i == 'L':
         _x -= 16
 
 
@@ -84,7 +84,7 @@ class Player:
         self.tool.rect.y = self.y - 5
 
         self.delta_x = 0
-        self.switch = False
+        self.switch = False  # true - влево смотрит
         self.jump = False
 
         self.move_x = 0
@@ -100,12 +100,37 @@ class Player:
     def move(self):
         # print(self.legs.rect.y)
         # todo: сделать, чтобы он не прыгал на 100500 блоков сам (Поярков обрежь текстуры)
+        autojump = False
+        _movex = self.move_x
+
         if len(pygame.sprite.spritecollide(self.legs, land, False)) >= 6:
-            self.y -= 16
-            self.body.rect.y -= 16
-            self.legs.rect.y -= 16
-            self.head.rect.y -= 16
-            self.tool.rect.y -= 16
+            self.move_x = 0
+            self.legs.rect.y -= 40
+
+            if not pygame.sprite.spritecollideany(self.legs, land):
+                autojump = True
+
+            self.legs.rect.y += 40
+
+            if autojump:
+                auojump = False
+                self.jump = True
+                self.move_y = 10
+                self.move_x = _movex
+            else:
+                if self.switch:
+                    self.x += 1
+                    self.body.rect.x += 1
+                    self.head.rect.x += 1
+                    self.tool.rect.x += 1
+                    self.legs.rect.x += 1
+
+                else:
+                    self.x -= 1
+                    self.body.rect.x -= 1
+                    self.head.rect.x -= 1
+                    self.tool.rect.x -= 1
+                    self.legs.rect.x -= 1
 
         if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
