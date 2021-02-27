@@ -3,9 +3,10 @@ import os
 import sys
 from PIL import Image
 # from player import Player
-from interface import Button
+from interface import *
 from other import *
 import level
+from random import randint
 
 pygame.init()
 pygame.display.init()
@@ -300,6 +301,132 @@ class Player:
                 self.attack = 1
 
 
+class Harpy:  # Летающий юнит(((
+    def __init__(self, x, y):
+        self.move = [load_image(f"harpy_move_{k}.png") for k in range(3)]
+        self.cur_move = 0
+
+        self.sprite = MySprite(monsters, all_sprites, self.move[0])
+        self.sprite.rect.x = self.x = x
+        self.sprite.rect.y = self.y = y
+
+        self.switch = True
+        self.fall = False
+        self.dead = False
+        self.attack = False
+
+        self.step = 0
+
+        self.retreat = 0
+
+        self.move_x = 5
+        self.move_y = 10
+
+        self.time_not_attack = 0
+
+        self.shield = 0
+        self.damage = 40
+        self.max_health = 100
+        self.health = 100
+
+        self.width = 120
+
+    def update(self):
+        self.x = self.sprite.rect.x
+        self.y = self.sprite.rect.y
+
+        if self.dead:
+            return
+
+        fl = False
+        count = 0
+        if not self.attack:
+            for i in range(0, 300):
+                self.sprite.rect.y += 1
+                count += 1
+                if pygame.sprite.spritecollideany(self.sprite, land):
+                    fl = True
+                    break
+            if not fl:
+                self.fall = True
+                self.move_y = 0
+            else:
+                self.move_y = 10
+                self.fall = False
+            self.sprite.rect.y -= count
+
+        if abs(player.x - self.x) < 300 and player.y > self.y and not self.attack:
+            self.move_y = 0
+            self.attack = True
+
+        if (pygame.sprite.collide_circle(self.sprite, player.tool)
+            or pygame.sprite.collide_circle(self.sprite, player.track)) and player.attack and self.shield == 0:
+            self.retreat = 1
+            self.shield = 1
+            self.health -= player.damage[player.cur_tool]
+            if self.health <= 0:
+                self.sprite.kill()
+                self.dead = True
+
+        if self.shield != 0:
+            self.shield = (self.shield + 1) % 15
+
+        if player.x - 10 <= self.x <= player.x + 10 and self.retreat == 0:
+            self.move_x = 0
+            self.move_y = -10
+
+        if self.retreat > 0:
+            if self.switch:
+                self.move_x = -5
+            else:
+                self.move_x = 5
+            self.move_y = 10
+            self.retreat = (self.retreat + 1) % 40
+
+        elif pygame.sprite.spritecollideany(self.sprite, player_sprites):
+            player.health -= self.damage
+            self.retreat = True
+
+        elif (player.x + 10 < self.x and self.move_x > 0) or (player.x - 10 > self.x and self.move_x < 0):
+            self.move_x *= -1
+
+        if pygame.sprite.spritecollideany(self.sprite, land):
+            self.move_y = 10
+            for i in range(-1, 2, 2):
+                self.sprite.rect.x += 10 * i
+                if not pygame.sprite.spritecollideany(self.sprite, land):
+                    break
+                self.sprite.rect.x -= 10 * i
+            self.x = self.sprite.rect.x
+
+        self.step = (self.step + 1) % 15
+        self.sprite.image = self.move[self.step // 5 - 1]
+
+        self.x += self.move_x
+        self.sprite.rect.x += self.move_x
+        if self.fall:
+            self.move_y = max(self.move_y - 1, -10)
+        self.y -= self.move_y
+        self.sprite.rect.y -= self.move_y
+
+        if self.move_x == 0:
+            if player.x < self.x:
+                self.move_x = -5
+
+            else:
+                self.move_x = 5
+        if (self.move_x > 0 and self.switch) or (self.move_x < 0 and not self.switch):
+            self.sprite.image = pygame.transform.flip(self.sprite.image, True, False)
+            self.switch = not self.switch
+            for i in range(len(self.move)):
+                self.move[i] = pygame.transform.flip(self.move[i], True, False)
+
+        pygame.draw.rect(screen, pygame.Color("red"),
+                         (self.x, self.y - 20, self.width, 5))
+        pygame.draw.rect(screen, pygame.Color("green"),
+                         (self.x, self.y - 20, self.width * (self.health / self.max_health), 5))
+
+
 class Slime:
     def __init__(self, x, y):
         self.slime_image = load_image("slime.png")
@@ -406,15 +533,18 @@ class Slime:
         pygame.draw.rect(screen, pygame.Color("green"),
                          (self.x, self.y - 20, self.width * (self.health / self.max_health), 5))
 
-        if self.health == 0:
+        if self.health <= 0:
             self.sprite.kill()
             self.dead = True
 
 
-def start_screen():
+def start_screen(death=False):
     # fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
     # screen.blit(fon, (0, 0))
     screen.fill((0, 0, 0))
+
+    if death:
+        text("Вы умерли", screen, height // 2 - 300, 100, width)
 
     button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
     button_save = Button(
@@ -466,12 +596,15 @@ def levels_screen():
 
 if __name__ == "__main__":
     play = True
+    dead = False
     while play:
-        start_screen()
+        start_screen(dead)
+        dead = False
         camera = Camera()
-        player_group = pygame.sprite.Group()
+        player_sprites = pygame.sprite.Group()
         player = Player(150, 150)
         monsters_objects.append(Slime(1500, 150))
+        monsters_objects.append(Harpy(1000, 150))
         running = True
         while running:
             for event in pygame.event.get():
@@ -480,12 +613,14 @@ if __name__ == "__main__":
                 player.events(event)
             # изменяем ракурс камеры
             camera.update(player.legs)
+            # camera.update(monsters_objects[1].sprite)
             # обновляем положение всех спрайтов
             for sprite in all_sprites:
                 camera.apply(sprite)
 
             if player.dead is True:
                 running = False
+                dead = True
             screen.fill(pygame.Color(255, 255, 255))
             player.move()
             for monster in monsters_objects:
