@@ -4,6 +4,7 @@ import sys
 from PIL import Image
 # from player import Player
 from interface import Button
+from random import randint
 from other import *
 import level
 
@@ -20,29 +21,59 @@ all_sprites = pygame.sprite.Group()
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
 land = pygame.sprite.Group()
-land_unused = pygame.sprite.Group()
+land_underground = pygame.sprite.Group()
 _x = 0
 _y = level.levels[0][0](height)
 _flag = False
 
-for i in level.levels[0][1]:
+for i in range(len(level.levels[0][1])):
     l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
     if _flag:
-        l.image = load_image("dirt.png")
+        if i > 1 and level.levels[0][1][i - 2] == 'U':
+            l.image = load_image("dirt_both.png")
+        else:
+            l.image = load_image("dirt_right.png")
     l.rect.x = _x
     l.rect.y = _y
+    _y = int(_y)
+
+    for j in range(_y + 16, _y + height // 2, 16):
+        if i != 0 and level.levels[0][1][i - 1] == 'U':
+            continue
+
+        t = MySprite(all_sprites, all_sprites, load_image("dirt.png"))
+        _rand = randint(0, 80)
+        if 1 >= _rand >= 0:
+            t.image = load_image("stone.png")
+        elif _rand == 2:
+            t.image = load_image("copper.png")
+        t.rect.x = _x
+        t.rect.y = j
 
     _flag = False
-    if i == 'R':
+    if level.levels[0][1][i] == 'R':
+        if i != 0 and level.levels[0][1][i - 1] == 'U':
+            l.image = load_image("dirt_grass_left_up.png")
         _x += 16
-    elif i == 'U':
+
+    elif level.levels[0][1][i] == 'U':
+        if i != 0 and level.levels[0][1][i - 1] == 'U':
+            l.image = load_image("dirt_grass_left.png")
+        else:
+            l.image = load_image("dirt_left.png")
         _y -= 16
-        l.image = load_image("dirt.png")
-    elif i == 'D':
+
+    elif level.levels[0][1][i] == 'D':
+        if i != 0 and level.levels[0][1][i - 1] == 'R':
+            l.image = load_image("dirt_grass_right_up.png")
+        elif i - 1 != 0 and level.levels[0][1][i - 1] == 'U':
+            l.image = load_image("dirt_grass_both.png")
+        else:
+            l.image = load_image("dirt_grass_right.png")
         _y += 16
         _flag = True
-    elif i == 'L':
-        _x -= 16
+    # elif level.levels[0][1][i] == 'L':
+    #     _x -= 16
 
 
 def terminate():
@@ -122,21 +153,6 @@ class Player:
 
                 if rcount > lcount and self.move_x > 0 or rcount < lcount and self.move_x < 0:
                     self.move_x = 0
-
-                # self.move_x = 0
-                # if self.switch:
-                #     self.x += 1
-                #     self.body.rect.x += 1
-                #     self.head.rect.x += 1
-                #     self.tool.rect.x += 1
-                #     self.legs.rect.x += 1
-
-                # else:
-                #     self.x -= 1
-                #     self.body.rect.x -= 1
-                #     self.head.rect.x -= 1
-                #     self.tool.rect.x -= 1
-                #     self.legs.rect.x -= 1
 
         if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
