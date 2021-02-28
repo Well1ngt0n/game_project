@@ -19,3 +19,10 @@ class Button:
                          (self.text_x - 10, self.text_y - 10, self.text_w + 20, self.text_h + 20), 1)
         self.w = self.text_w + 20
         self.h = self.text_h + 20
+
+
+def text(text, screen, text_y, font_size, width):
+    font = pygame.font.Font(None, font_size)
+    text = font.render(text, True, (255, 255, 255))
+    text_x = width // 2 - text.get_width() // 2
+    screen.blit(text, (text_x, text_y))
