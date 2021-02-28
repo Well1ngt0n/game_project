@@ -711,8 +711,8 @@ if __name__ == "__main__":
         camera = Camera()
         player_sprites = pygame.sprite.Group()
         player = Player(150, 150)
-        # monsters_objects.append(Slime(1500, 150))
-        # monsters_objects.append(Harpy(1000, 150))
+        monsters_objects.append(Slime(1500, 150))
+        monsters_objects.append(Harpy(1000, 150))
         running = True
         while running:
             for event in pygame.event.get():
