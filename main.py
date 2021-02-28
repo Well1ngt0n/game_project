@@ -125,6 +125,7 @@ class Player:
         self.image_body_tool = load_image("body-tool.png")
         self.image_head = load_image("head.png")
         self.image_sword = load_image("sword-test.png")
+        self.image_spear = pygame.transform.rotate(load_image("spear.png"), -45)
         self.image_jump = load_image("legs-jump.png")
         self.track1 = load_image("sword-track-1.png")
         self.track2 = load_image("sword-track-2.png")
@@ -137,6 +138,7 @@ class Player:
         self.cur_tool = "sword"
         self.damage = {
             "sword": 50,
+            "spear": 70,
         }
         self.tool = MySprite(all_sprites, all_sprites, self.image_sword)
         self.body = MySprite(player_sprites, all_sprites, self.image_body)
@@ -256,46 +258,72 @@ class Player:
                     self.tool.rect.y -= self.move_y // abs(self.move_y) * 1
 
         if self.attack != 0:
-            if self.attack == 5:
+            if self.cur_tool == "sword":
+                if self.attack == 5:
+                    if self.switch:
+                        self.track.image = self.track1
+                        self.track.rect.x = self.x - 45
+                        self.track.rect.y = self.y + 26
+                        self.tool.image = pygame.transform.rotate(
+                            self.tool.image, 45)
+                    else:
+                        self.track.image = self.track1
+                        self.track.rect.x = self.x + 50
+                        self.track.rect.y = self.y
+                        self.tool.image = pygame.transform.rotate(
+                            self.tool.image, -45)
+                    self.tool.rect.y += 15
+                if self.attack == 10:
+                    if self.switch:
+                        self.track.image = self.track2
+                        self.track.rect.x = self.x - 45
+                        self.track.rect.y = self.y + 26
+                        self.tool.image = pygame.transform.rotate(
+                            self.image_sword, 90)
+                    else:
+                        self.track.image = self.track2
+                        self.track.rect.x = self.x + 45
+                        self.track.rect.y = self.y + 26
+                        self.tool.image = pygame.transform.rotate(
+                            self.image_sword, -90)
+                    self.tool.rect.y += 35
+                if self.attack == 15:
+                    self.track.image = self.image_none
+                    self.tool.rect.y -= 50
+                    self.tool.image = self.image_sword
+                self.attack = (self.attack + 1) % 16
+            else:
                 if self.switch:
-                    self.track.image = self.track1
-                    self.track.rect.x = self.x - 45
-                    self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(
-                        self.tool.image, 45)
+                    k = -1
                 else:
-                    self.track.image = self.track1
-                    self.track.rect.x = self.x + 50
-                    self.track.rect.y = self.y
-                    self.tool.image = pygame.transform.rotate(
-                        self.tool.image, -45)
-                self.tool.rect.y += 15
-            if self.attack == 10:
-                if self.switch:
-                    self.track.image = self.track2
-                    self.track.rect.x = self.x - 45
-                    self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(
-                        self.image_sword, 90)
-                else:
-                    self.track.image = self.track2
-                    self.track.rect.x = self.x + 45
-                    self.track.rect.y = self.y + 26
-                    self.tool.image = pygame.transform.rotate(
-                        self.image_sword, -90)
-                self.tool.rect.y += 35
-            if self.attack == 15:
-                self.track.image = self.image_none
-                self.tool.rect.y -= 50
-                self.tool.image = self.image_sword
-                self.attack = -1
-            self.attack += 1
+                    k = 1
+                if self.attack <= 5:
+                    self.tool.rect.x += k * 10
+                elif self.attack < 10:
+                    self.tool.rect.x -= k * 10
+                elif self.attack == 10:
+                    if self.switch:
+                        self.tool.rect.x = self.x - 65
+                    else:
+                        self.tool.rect.x = self.x - 15
+                self.attack = (self.attack + 1) % 11
 
         pygame.draw.rect(screen, pygame.Color("red"), (20, 20, 100, 20))
         pygame.draw.rect(screen, pygame.Color("green"),
                          (20, 20, 100 * (self.health / self.max_health), 20))
 
     def switch_lr(self):
+        self.attack = 0
+        if self.cur_tool == "sword":
+            if self.switch:
+                self.tool.rect.x = self.x - 50
+            else:
+                self.tool.rect.x = self.x + 26
+        elif self.cur_tool == "spear":
+            if self.switch:
+                self.tool.rect.x = self.x - 65
+            else:
+                self.tool.rect.x = self.x - 15
         self.switch = not self.switch
         self.image_legs_move_0 = pygame.transform.flip(
             self.image_legs_move_0, True, False)
@@ -316,10 +344,14 @@ class Player:
             self.image_body_tool, True, False)
         self.head.image = pygame.transform.flip(self.head.image, True, False)
         self.legs.image = pygame.transform.flip(self.legs.image, True, False)
+        self.image_spear = pygame.transform.flip(self.image_spear, True, False)
         if self.cur_tool is not None:
             self.tool.image = pygame.transform.flip(
                 self.tool.image, True, False)
-            self.tool.rect.x += 76 * self.move_x // abs(self.move_x)
+            if self.cur_tool == "sword":
+                self.tool.rect.x += 76 * self.move_x // abs(self.move_x)
+            else:
+                self.tool.rect.x += 50 * self.move_x // abs(self.move_x)
 
     def events(self, event):
         if event.type == pygame.KEYUP:
@@ -343,9 +375,23 @@ class Player:
                 self.key_d = False
             if event.key == pygame.K_SPACE and not self.jump:
                 self.key_space = True
+            if event.key == pygame.K_1:
+                self.cur_tool = "sword"
+                self.tool.image = self.image_sword
+                if self.switch:
+                    self.tool.rect.x = self.x - 50
+                else:
+                    self.tool.rect.x = self.x + 26
+            if event.key == pygame.K_2:
+                self.cur_tool = "spear"
+                self.tool.image = self.image_spear
+                if self.switch:
+                    self.tool.rect.x = self.x - 65
+                else:
+                    self.tool.rect.x = self.x - 15
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.cur_tool == "sword" and self.attack == 0:
+            if self.cur_tool and self.attack == 0:
                 self.attack = 1
 
         if self.key_a:
@@ -665,8 +711,8 @@ if __name__ == "__main__":
         camera = Camera()
         player_sprites = pygame.sprite.Group()
         player = Player(150, 150)
-        monsters_objects.append(Slime(1500, 150))
-        monsters_objects.append(Harpy(1000, 150))
+        # monsters_objects.append(Slime(1500, 150))
+        # monsters_objects.append(Harpy(1000, 150))
         running = True
         while running:
             for event in pygame.event.get():
