@@ -17,17 +17,30 @@ clock = pygame.time.Clock()
 monsters = pygame.sprite.Group()
 player_sprites = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
+land = pygame.sprite.Group()
+land_underground = pygame.sprite.Group()
+unmovable = pygame.sprite.Group()
 
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
-land = pygame.sprite.Group()
-land_underground = pygame.sprite.Group()
 _x = 0
 _y = level.levels[0][0](height)
 _flag = False
 
+for i in range(0, width + 199, 200):
+    l = MySprite(unmovable, unmovable, load_image("sky.png"))
+    l.rect.x = i
+    l.rect.y = 0
+
 for i in range(len(level.levels[0][1])):
+    if level.levels[0][1][i] == "T":
+        l = MySprite(all_sprites, all_sprites, load_image("tree.png"))
+        l.rect.x = _x
+        l.rect.y = _y - 196
+        continue
+
     l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
+
     if _flag:
         if i > 1 and level.levels[0][1][i - 2] == 'U':
             l.image = load_image("dirt_both.png")
@@ -43,9 +56,9 @@ for i in range(len(level.levels[0][1])):
 
         t = MySprite(all_sprites, all_sprites, load_image("dirt.png"))
         _rand = randint(0, 80)
-        if 1 >= _rand >= 0:
+        if 3 >= _rand >= 0:
             t.image = load_image("stone.png")
-        elif _rand == 2:
+        elif _rand == 50:
             t.image = load_image("copper.png")
         t.rect.x = _x
         t.rect.y = j
@@ -462,9 +475,11 @@ if __name__ == "__main__":
                 running = False
             player.events(event)
 
-        screen.fill(pygame.Color(255, 255, 255))
+        # screen.fill(pygame.Color(255, 255, 255))
         player.move()
         slime.update()
+        unmovable.update()
+        unmovable.draw(screen)
         all_sprites.update()
         all_sprites.draw(screen)
         clock.tick(60)
