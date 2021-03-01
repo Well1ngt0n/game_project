@@ -609,7 +609,7 @@ def start_screen(header=''):
     if header:
         text(header, screen, height // 2 - 300, 100, width)
 
-    button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
+    button_play = Button(height // 2 - 100, "Чтобы начать играть, нажмите на кнопку (эта не работает)", 60, screen, width)
     button_save = Button(
         height // 2 + 100, "Уровни", 60, screen, width)
     upload_level = False
@@ -635,7 +635,7 @@ def start_screen(header=''):
             screen.fill((0, 0, 0))
 
             button_play = Button(
-                height // 2 - 100, "Играть", 60, screen, width)
+                height // 2 - 100, "Чтобы начать играть, нажмите на кнопку (эта не работает)", 60, screen, width)
             button_save = Button(
                 height // 2 + 100, "Уровни", 60, screen, width)
         pygame.display.flip()
