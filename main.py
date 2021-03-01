@@ -15,6 +15,7 @@ infoObject = pygame.display.Info()
 size = width, height = infoObject.current_w, infoObject.current_h
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
+
 monsters = pygame.sprite.Group()
 monsters_objects = []
 player_sprites = pygame.sprite.Group()
@@ -44,78 +45,6 @@ class Camera:
 
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
-_x = 0
-_y = height // 2
-_flag = False
-
-for i in range(0, width + 199, 200):
-    l = MySprite(unmovable, unmovable, load_image("sky.png"))
-    l.rect.x = i
-    l.rect.y = 0
-
-l = MySprite(edges, all_sprites, load_image("edge.png"))
-l.rect.x = -16
-l.rect.y = _y - 160
-
-for i in range(len(level.levels[0][0])):
-    if level.levels[0][0][i] == "T":
-        l = MySprite(all_sprites, all_sprites, load_image("tree.png"))
-        l.rect.x = _x
-        l.rect.y = _y - 196
-        continue
-
-    l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
-
-    if _flag:
-        if i > 1 and level.levels[0][0][i - 2] == 'U':
-            l.image = load_image("dirt_both.png")
-        else:
-            l.image = load_image("dirt_right.png")
-    l.rect.x = _x
-    l.rect.y = _y
-    _y = int(_y)
-
-    for j in range(_y + 16, _y + randint(200, 300), 16):
-        if i != 0 and level.levels[0][0][i - 1] == 'U':
-            continue
-
-        t = MySprite(all_sprites, all_sprites, load_image("dirt.png"))
-        _rand = randint(0, 80)
-        if 5 >= _rand >= 0:
-            t.image = load_image("stone.png")
-        elif _rand == 50:
-            t.image = load_image("copper.png")
-        t.rect.x = _x
-        t.rect.y = j
-
-    _flag = False
-    if level.levels[0][0][i] == 'R':
-        if i != 0 and level.levels[0][0][i - 1] == 'U':
-            l.image = load_image("dirt_grass_left_up.png")
-        _x += 16
-
-    elif level.levels[0][0][i] == 'U':
-        if i != 0 and level.levels[0][0][i - 1] == 'U':
-            l.image = load_image("dirt_grass_left.png")
-        else:
-            l.image = load_image("dirt_left.png")
-        _y -= 16
-
-    elif level.levels[0][0][i] == 'D':
-        if i != 0 and level.levels[0][0][i - 1] == 'R':
-            l.image = load_image("dirt_grass_right_up.png")
-        elif i - 1 != 0 and level.levels[0][0][i - 1] == 'U':
-            l.image = load_image("dirt_grass_both.png")
-        else:
-            l.image = load_image("dirt_grass_right.png")
-        _y += 16
-        _flag = True
-    # elif level.levels[0][0][i] == 'L':
-    #     _x -= 16
-l = MySprite(edges, all_sprites, load_image("edge.png"))
-l.rect.x = _x
-l.rect.y = _y - 160
-
 
 def terminate():
     pygame.quit()
@@ -538,8 +467,13 @@ class Slime:
         # УРААА КОСТЫЛЬ!!
         self.x = self.sprite.rect.x
         self.y = self.sprite.rect.y
+
         if self.dead:  # Если мертв, так и обновлять нечего
             return
+
+        if self.y > 4000:
+            self.health = 0
+
         if pygame.sprite.spritecollideany(self.sprite, land) and self.move_y <= 0:
             self.jump_fall = False
             self.move_y = -10
@@ -614,13 +548,13 @@ class Slime:
             self.dead = True
 
 
-def start_screen(death=False):
+def start_screen(header=''):
     # fon = pygame.transform.scale(load_image('fon.jpg'), (width, height))
     # screen.blit(fon, (0, 0))
     screen.fill((0, 0, 0))
 
-    if death:
-        text("Вы умерли", screen, height // 2 - 300, 100, width)
+    if header:
+        text(header, screen, height // 2 - 300, 100, width)
 
     button_play = Button(height // 2 - 100, "Играть", 60, screen, width)
     button_save = Button(
@@ -632,14 +566,17 @@ def start_screen(death=False):
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
-                if button_play.text_x - 10 <= x <= button_play.text_x - 10 + button_play.w and \
-                        button_play.text_y - 10 <= y <= button_play.text_y - 10 + button_play.h:
-                    return
+                # if button_play.text_x - 10 <= x <= button_play.text_x - 10 + button_play.w and \
+                #         button_play.text_y - 10 <= y <= button_play.text_y - 10 + button_play.h:
+                    # return
                 if button_save.text_x - 10 <= x <= button_save.text_x - 10 + button_save.w and \
                         button_save.text_y - 10 <= y <= button_save.text_y - 10 + button_save.h:
                     upload_level = True
+
         if upload_level:
-            levels_screen()
+            a = levels_screen()
+            if a == True:
+                return
             upload_level = False
 
             screen.fill((0, 0, 0))
@@ -649,6 +586,92 @@ def start_screen(death=False):
             button_save = Button(
                 height // 2 + 100, "Уровни", 60, screen, width)
         pygame.display.flip()
+
+
+def generate_random_level():
+    pass
+
+
+def load_level(value):
+    global monsters_objects
+    _x = 0
+    _y = height // 2
+    _flag = False
+
+    for i in range(0, width + 199, 200):
+        l = MySprite(unmovable, unmovable, load_image("sky.png"))
+        l.rect.x = i
+        l.rect.y = 0
+
+    l = MySprite(edges, all_sprites, load_image("edge.png"))
+    l.rect.x = -16
+    l.rect.y = _y - 250
+
+    for i in range(len(level.levels[value][0])):
+        if level.levels[value][0][i] == "T":
+            l = MySprite(all_sprites, all_sprites, load_image("tree.png"))
+            l.rect.x = _x
+            l.rect.y = _y - 196
+            continue
+
+        l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
+
+        if _flag:
+            if i > 1 and level.levels[value][0][i - 2] == 'U':
+                l.image = load_image("dirt_both.png")
+            else:
+                l.image = load_image("dirt_right.png")
+        l.rect.x = _x
+        l.rect.y = _y
+        _y = int(_y)
+
+        for j in range(_y + 16, _y + randint(200, 300), 16):
+            if i != 0 and level.levels[value][0][i - 1] == 'U':
+                continue
+
+            t = MySprite(all_sprites, all_sprites, load_image("dirt.png"))
+            _rand = randint(0, 80)
+            if 5 >= _rand >= 0:
+                t.image = load_image("stone.png")
+            elif _rand == 50:
+                t.image = load_image("copper.png")
+            t.rect.x = _x
+            t.rect.y = j
+
+        _flag = False
+        if level.levels[value][0][i] == 'R':
+            if i != 0 and level.levels[value][0][i - 1] == 'U':
+                l.image = load_image("dirt_grass_left_up.png")
+            _x += 16
+
+        elif level.levels[value][0][i] == 'U':
+            if i != 0 and level.levels[value][0][i - 1] == 'U':
+                l.image = load_image("dirt_grass_left.png")
+            else:
+                l.image = load_image("dirt_left.png")
+            _y -= 16
+
+        elif level.levels[value][0][i] == 'D':
+            if i != 0 and level.levels[value][0][i - 1] == 'R':
+                l.image = load_image("dirt_grass_right_up.png")
+            elif i - 1 != 0 and level.levels[value][0][i - 1] == 'U':
+                l.image = load_image("dirt_grass_both.png")
+            else:
+                l.image = load_image("dirt_grass_right.png")
+            _y += 16
+            _flag = True
+        # elif level.levels[value][0][i] == 'L':
+        #     _x -= 16
+
+    l = MySprite(edges, all_sprites, load_image("edge.png"))
+    l.rect.x = _x
+    l.rect.y = _y - 160
+
+    for i in level.levels[value][1]:
+        monsters_objects.append(Slime(i[0], i[1]))
+
+    for i in level.levels[value][2]:
+        monsters_objects.append(Harpy(i[0], i[1]))
 
 
 def levels_screen():
@@ -665,24 +688,29 @@ def levels_screen():
                 terminate()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
+                for i in range(len(levels)):
+                    if levels[i].text_x - 10 <= x <= levels[i].text_x - 10 + levels[i].w and \
+                            levels[i].text_y - 10 <= y <= levels[i].text_y - 10 + levels[i].h:
+                        load_level(i)
+                        return True
+
                 if exit_btn.text_x - 10 <= x <= exit_btn.text_x - 10 + exit_btn.w and \
                         exit_btn.text_y - 10 <= y <= exit_btn.text_y - 10 + exit_btn.h:
-                    print(1)
                     return
         pygame.display.flip()
 
 
 if __name__ == "__main__":
     play = True
-    dead = False
+    sscr_header = ''
     while play:
-        start_screen(dead)
-        dead = False
+        start_screen(sscr_header)
+        sscr_header = ''
         camera = Camera()
         player_sprites = pygame.sprite.Group()
         player = Player(150, 150)
-        monsters_objects.append(Slime(1500, 150))
-        monsters_objects.append(Harpy(1000, 150))
+        # monsters_objects.append(Slime(1500, 150))
+        # monsters_objects.append(Harpy(1000, 150))
         running = True
         while running:
             for event in pygame.event.get():
@@ -698,19 +726,32 @@ if __name__ == "__main__":
 
             if player.dead is True:
                 running = False
-                dead = True
+                sscr_header = 'Вы умерли!'
+            if monsters_objects == []:
+                running = False
+                sscr_header = 'Вы выиграли!'
             unmovable.update()
             unmovable.draw(screen)
             all_sprites.update()
             all_sprites.draw(screen)
-            for monster in monsters_objects:
-                monster.update()
+            kill_monster = []
+            for i in range(len(monsters_objects)):
+                monsters_objects[i].update()
+                if monsters_objects[i].dead:
+                    kill_monster.append(i)
+
+            for i in kill_monster[::-1]:
+                del monsters_objects[i]
             player.move()
             clock.tick(60)
             pygame.display.flip()
 
-        all_sprites = pygame.sprite.Group()
         monsters = pygame.sprite.Group()
-        player_sprites = pygame.sprite.Group()
         monsters_objects = []
+        player_sprites = pygame.sprite.Group()
+        all_sprites = pygame.sprite.Group()
+        land = pygame.sprite.Group()
+        land_underground = pygame.sprite.Group()
+        unmovable = pygame.sprite.Group()
+        edges = pygame.sprite.Group()
     pygame.quit()
