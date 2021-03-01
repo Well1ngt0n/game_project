@@ -22,6 +22,7 @@ all_sprites = pygame.sprite.Group()
 land = pygame.sprite.Group()
 land_underground = pygame.sprite.Group()
 unmovable = pygame.sprite.Group()
+edges = pygame.sprite.Group()
 
 
 class Camera:
@@ -44,7 +45,7 @@ class Camera:
 # Тестовая земля, потому что Денис ленивая тварь
 # 21.02.21 23:58 : Денис начал что-то делать (Поярков ленивая тварь)
 _x = 0
-_y = level.levels[0][0](height)
+_y = height // 2
 _flag = False
 
 for i in range(0, width + 199, 200):
@@ -52,8 +53,12 @@ for i in range(0, width + 199, 200):
     l.rect.x = i
     l.rect.y = 0
 
-for i in range(len(level.levels[0][1])):
-    if level.levels[0][1][i] == "T":
+l = MySprite(edges, all_sprites, load_image("edge.png"))
+l.rect.x = -16
+l.rect.y = _y - 160
+
+for i in range(len(level.levels[0][0])):
+    if level.levels[0][0][i] == "T":
         l = MySprite(all_sprites, all_sprites, load_image("tree.png"))
         l.rect.x = _x
         l.rect.y = _y - 196
@@ -62,7 +67,7 @@ for i in range(len(level.levels[0][1])):
     l = MySprite(land, all_sprites, load_image("dirt_grass.png"))
 
     if _flag:
-        if i > 1 and level.levels[0][1][i - 2] == 'U':
+        if i > 1 and level.levels[0][0][i - 2] == 'U':
             l.image = load_image("dirt_both.png")
         else:
             l.image = load_image("dirt_right.png")
@@ -70,13 +75,13 @@ for i in range(len(level.levels[0][1])):
     l.rect.y = _y
     _y = int(_y)
 
-    for j in range(_y + 16, _y + height // 2, 16):
-        if i != 0 and level.levels[0][1][i - 1] == 'U':
+    for j in range(_y + 16, _y + randint(200, 300), 16):
+        if i != 0 and level.levels[0][0][i - 1] == 'U':
             continue
 
         t = MySprite(all_sprites, all_sprites, load_image("dirt.png"))
         _rand = randint(0, 80)
-        if 3 >= _rand >= 0:
+        if 5 >= _rand >= 0:
             t.image = load_image("stone.png")
         elif _rand == 50:
             t.image = load_image("copper.png")
@@ -84,29 +89,32 @@ for i in range(len(level.levels[0][1])):
         t.rect.y = j
 
     _flag = False
-    if level.levels[0][1][i] == 'R':
-        if i != 0 and level.levels[0][1][i - 1] == 'U':
+    if level.levels[0][0][i] == 'R':
+        if i != 0 and level.levels[0][0][i - 1] == 'U':
             l.image = load_image("dirt_grass_left_up.png")
         _x += 16
 
-    elif level.levels[0][1][i] == 'U':
-        if i != 0 and level.levels[0][1][i - 1] == 'U':
+    elif level.levels[0][0][i] == 'U':
+        if i != 0 and level.levels[0][0][i - 1] == 'U':
             l.image = load_image("dirt_grass_left.png")
         else:
             l.image = load_image("dirt_left.png")
         _y -= 16
 
-    elif level.levels[0][1][i] == 'D':
-        if i != 0 and level.levels[0][1][i - 1] == 'R':
+    elif level.levels[0][0][i] == 'D':
+        if i != 0 and level.levels[0][0][i - 1] == 'R':
             l.image = load_image("dirt_grass_right_up.png")
-        elif i - 1 != 0 and level.levels[0][1][i - 1] == 'U':
+        elif i - 1 != 0 and level.levels[0][0][i - 1] == 'U':
             l.image = load_image("dirt_grass_both.png")
         else:
             l.image = load_image("dirt_grass_right.png")
         _y += 16
         _flag = True
-    # elif level.levels[0][1][i] == 'L':
+    # elif level.levels[0][0][i] == 'L':
     #     _x -= 16
+l = MySprite(edges, all_sprites, load_image("edge.png"))
+l.rect.x = _x
+l.rect.y = _y - 160
 
 
 def terminate():
@@ -176,8 +184,6 @@ class Player:
         # Костыль для камеры
         self.x = self.legs.rect.x
         self.y = self.legs.rect.y
-        autojump = False
-        _movex = self.move_x
 
         if self.health <= 0:
             self.dead = True
@@ -201,6 +207,16 @@ class Player:
 
                 if rcount > lcount and self.move_x > 0 or rcount < lcount and self.move_x < 0:
                     self.move_x = 0
+
+        if pygame.sprite.spritecollideany(self.legs, edges):
+            self.legs.rect.x += 5
+            rcount = pygame.sprite.spritecollideany(self.legs, edges)
+            self.legs.rect.x -= 10
+            lcount = pygame.sprite.spritecollideany(self.legs, edges)
+            self.legs.rect.x += 5
+
+            if lcount and self.move_x < 0 or rcount and self.move_x > 0:
+                self.move_x = 0
 
         if pygame.sprite.spritecollideany(self.legs, land) and self.move_y <= 0:
             self.jump = False
@@ -729,14 +745,13 @@ if __name__ == "__main__":
             if player.dead is True:
                 running = False
                 dead = True
-            screen.fill(pygame.Color(255, 255, 255))
-            player.move()
-            for monster in monsters_objects:
-                monster.update()
             unmovable.update()
             unmovable.draw(screen)
             all_sprites.update()
             all_sprites.draw(screen)
+            for monster in monsters_objects:
+                monster.update()
+            player.move()
             clock.tick(60)
             pygame.display.flip()
 
