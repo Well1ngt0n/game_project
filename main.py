@@ -365,7 +365,10 @@ class Player:
             self.tool.image = pygame.transform.flip(
                 self.tool.image, True, False)
             if self.cur_tool == "sword":
+                self.track.image = self.image_none
+                self.tool.image = self.image_sword
                 self.tool.rect.x += 76 * self.move_x // abs(self.move_x)
+                self.tool.rect.y = self.y - 5
             else:
                 self.tool.rect.x += 50 * self.move_x // abs(self.move_x)
 
@@ -391,14 +394,18 @@ class Player:
                 self.key_d = False
             if event.key == pygame.K_SPACE and not self.jump:
                 self.key_space = True
-            if event.key == pygame.K_1:
+            if event.key == pygame.K_1 and self.cur_tool != "sword":
+                self.attack = 0
                 self.cur_tool = "sword"
                 self.tool.image = self.image_sword
                 if self.switch:
                     self.tool.rect.x = self.x - 50
                 else:
                     self.tool.rect.x = self.x + 26
-            if event.key == pygame.K_2:
+            if event.key == pygame.K_2 and self.cur_tool != "spear":
+                self.track.image = self.image_none
+                self.tool.rect.y = self.y - 5
+                self.attack = 0
                 self.cur_tool = "spear"
                 self.tool.image = self.image_spear
                 if self.switch:
